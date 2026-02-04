@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bỏ qua giới thiệu rophim
 // @namespace    http://tampermonkey.net/
-// @version      2026-02-05
+// @version      0.1
 // @description  try to take over the world!
 // @author       You
 // @match        https://*.rophim.la/*
