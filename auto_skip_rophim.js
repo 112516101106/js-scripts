@@ -4,8 +4,6 @@
 // @version      0.1
 // @description  try to take over the world!
 // @author       You
-// @match        https://*.rophim.la/*
-// @match        https://rophim.la/*
 // @match        *://*.rophim.*/*
 // @match        *://rophim.*/*
 // @include      /^https?:\/\/(www\.)?rophim\..*\/.*$/
