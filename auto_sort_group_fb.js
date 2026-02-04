@@ -3,10 +3,12 @@
 // @namespace    http://tampermonkey.net/
 // @version      4.0
 // @description  Quét liên tục mỗi 500ms để ép chuyển hướng sang Chronological
-// @author
+// @author       You
 // @match        https://www.facebook.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=facebook.com
 // @grant        none
+// @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_sort_group_fb.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
+// @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_sort_group_fb.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
 // ==/UserScript==
 
 (function () {
