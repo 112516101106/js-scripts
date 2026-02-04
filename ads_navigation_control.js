@@ -20,7 +20,6 @@
     // Ví dụ: 'abc' sẽ chặn trên các trang abc.com, abc.org, abc.xyz, abc.net...
     const blacklist = [
         //'rophim.nl',
-        // Thêm các trang muốn chặn quảng cáo vào đây theo dạng 'abc',
     ];
 
 
