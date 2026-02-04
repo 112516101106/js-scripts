@@ -83,6 +83,5 @@
         }, 5000);
     }
 
-    // Vì đã dùng @run-at document-idle, ta có thể chạy init ngay
     init();
 })();
