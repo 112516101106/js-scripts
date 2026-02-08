@@ -7,8 +7,8 @@
 // @match        *://*/*
 // @run-at       document-start
 // @grant        unsafeWindow
-// @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/ads_navigation_control.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
-// @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/ads_navigation_control.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
+// @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/ads_navigation_control.js
+// @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/ads_navigation_control.js
 // ==/UserScript==
 
 (function () {

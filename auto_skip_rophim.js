@@ -9,8 +9,8 @@
 // @include      /^https?:\/\/(www\.)?rophim\..*\/.*$/
 // @run-at       document-idle
 // @grant        none
-// @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_rophim.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
-// @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_rophim.js?token=GHSAT0AAAAAADUZ4KVFZTXJGQNRYUPT5GPU2MDYMSQ
+// @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_rophim.js
+// @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_rophim.js
 // ==/UserScript==
 
 (function () {
