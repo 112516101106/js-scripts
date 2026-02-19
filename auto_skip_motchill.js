@@ -16,8 +16,8 @@
     'use strict';
 
     // --- Smart Popup Blocker ---
-    // Policies: 
-    // 1. Block different-domain popups. 
+    // Policies:
+    // 1. Block different-domain popups.
     // 2. Allow same-domain popups.
     // 3. Allow popups if user holds modifier keys (Cmd/Ctrl/Alt) or double-clicks.
 
@@ -89,7 +89,7 @@
 
 
     const STORAGE_PREFIX = 'motchill_v3_';
-    const REQUIRED_SAMPLES_DEFAULT = 3;
+    const REQUIRED_SAMPLES_DEFAULT = 1;
 
     // --- Helpers for Storage ---
     function getSettings(key, defaultVal) {
@@ -124,7 +124,7 @@
     let savedSpeed = 1.0;
 
     // New States
-    let instantMode = false;
+    let instantMode = true;
     let isAutoEnabled = true;
     let isRewindEnabled = true;
     let effectiveValues = { intro: null, outroOffset: null };
