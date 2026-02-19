@@ -128,6 +128,7 @@
     let isAutoEnabled = true;
     let isRewindEnabled = true;
     let effectiveValues = { intro: null, outroOffset: null };
+    let isSpeedStabilized = false;
 
     function getIds() {
         // Try Nuxt data structure
@@ -176,6 +177,7 @@
         instantMode = getSettings('instant_mode_' + ids.movieId, getSettings('instant_mode_global', true));
         isAutoEnabled = getSettings('auto_enabled_global', true);
         isRewindEnabled = getSettings('rewind_enabled_global', true);
+        isSpeedStabilized = false; // Reset on load
 
         recalcEffectiveValues();
 
@@ -384,6 +386,7 @@
         saveSettings('speed_global', savedSpeed);
 
         updateUI();
+        isSpeedStabilized = true;
         applySpeed();
     }
 
@@ -668,7 +671,6 @@
         console.log('[MotchillTool] Player attached.');
         // Initial load
         loadData();
-        applySpeed();
 
         player.on('time', (e) => {
             const t = e.position;
@@ -697,6 +699,22 @@
                     goToNextEpisode();
                 }
             }
+
+            // Safe Speed Logic
+            if (!isSpeedStabilized && isAutoEnabled) {
+                // Policy: Only set speed if we don't have an intro to skip OR we have already skipped it
+                const needsSkip = (effectiveValues.intro && !hasSkippedIntro);
+                if (!needsSkip) {
+                    // Wait a bit for player to actually start playing (t > 0.5) to ensure stability
+                    if (t > 0.5) {
+                        const currentSpeed = (typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1.0;
+                        console.log(`[MotchillTool] Speed transition: ${currentSpeed} -> ${savedSpeed}`);
+                        console.log('[MotchillTool] Speed stabilized (Safe Mode). Setting speed:', savedSpeed);
+                        applySpeed();
+                        isSpeedStabilized = true;
+                    }
+                }
+            }
         });
 
         player.on('complete', () => {
@@ -705,13 +723,20 @@
             }
         });
 
-        player.on('play', applySpeed);
-        player.on('seek', applySpeed);
+        player.on('play', () => {
+            if (isSpeedStabilized) applySpeed();
+        });
+        player.on('seek', () => {
+            // If seeking manually, we might want to re-apply speed if stabilized
+            if (isSpeedStabilized) applySpeed();
+        });
         player.on('levelsChanged', applySpeed);
     }
 
-    // Periodically enforce speed
-    setInterval(applySpeed, 1500);
+    // Periodically enforce speed ONLY if stabilized
+    setInterval(() => {
+        if (isSpeedStabilized) applySpeed();
+    }, 1500);
 
     function goToNextEpisode() {
         const nextBtn = document.querySelector('.jw-icon-next') || document.querySelector('.item-next');
@@ -753,7 +778,9 @@
             lastUrl = window.location.href;
             console.log('[MotchillTool] URL changed, resetting...');
             hasSkippedIntro = false;
+            hasSkippedIntro = false;
             isNextTriggered = false;
+            isSpeedStabilized = false;
 
             setTimeout(() => {
                 loadData();
