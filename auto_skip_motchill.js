@@ -4,7 +4,6 @@
 // @version      3.8
 // @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
 // @author       Antigravity
-// @match        *://*.motchill*.*/*
 // @match        *://motchill*.*/xem-phim-*
 // @include      /^https?:\/\/(www\.)?motchill.*\..*\/.*$/
 // @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
@@ -14,6 +13,7 @@
 
 (function () {
     'use strict';
+    // @match        *://*.motchill*.*/*
 
     // --- Smart Popup Blocker ---
     // Policies:
@@ -672,6 +672,22 @@
         // Initial load
         loadData();
 
+        if (player._motchillAttached) return;
+        player._motchillAttached = true;
+
+        player.on('playlistItem', () => {
+            console.log('[MotchillTool] Playlist item changed (JWPlayer event). Resetting speed stabilization.');
+            hasSkippedIntro = false;
+            isNextTriggered = false;
+            isSpeedStabilized = false;
+            if (typeof player.setPlaybackRate === 'function') {
+                try { player.setPlaybackRate(1.0); } catch (e) { }
+            } else {
+                const video = document.querySelector('video.jw-video');
+                if (video) video.playbackRate = 1.0;
+            }
+        });
+
         player.on('time', (e) => {
             const t = e.position;
             const dur = e.duration;
@@ -730,7 +746,32 @@
             // If seeking manually, we might want to re-apply speed if stabilized
             if (isSpeedStabilized) applySpeed();
         });
-        player.on('levelsChanged', applySpeed);
+        player.on('levelsChanged', () => {
+            if (isSpeedStabilized) applySpeed();
+        });
+
+        // Theo dõi tốc độ thực tế của video mỗi 5 giây
+        // setInterval(() => {
+        //     try {
+        //         let isPlaying = false;
+        //         let actualSpeed = 1.0;
+
+        //         if (player && typeof player.getState === 'function') {
+        //             isPlaying = player.getState() === 'playing';
+        //             actualSpeed = (typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1.0;
+        //         } else {
+        //             const video = document.querySelector('video.jw-video');
+        //             if (video) {
+        //                 isPlaying = !video.paused && !video.ended;
+        //                 actualSpeed = video.playbackRate;
+        //             }
+        //         }
+
+        //         if (isPlaying) {
+        //             console.log(`[MotchillTool] Hiện tại video đang phát bật ở tốc độ thực tế: ${actualSpeed}x`);
+        //         }
+        //     } catch (e) { }
+        // }, 5000);
     }
 
     // Periodically enforce speed ONLY if stabilized
@@ -778,15 +819,22 @@
             lastUrl = window.location.href;
             console.log('[MotchillTool] URL changed, resetting...');
             hasSkippedIntro = false;
-            hasSkippedIntro = false;
             isNextTriggered = false;
             isSpeedStabilized = false;
+
+            // Explicitly reset player speed to 1x to ensure accurate transition log for new episode
+            if (player && typeof player.setPlaybackRate === 'function') {
+                try { player.setPlaybackRate(1.0); } catch (e) { }
+            } else {
+                const video = document.querySelector('video.jw-video');
+                if (video) video.playbackRate = 1.0;
+            }
 
             setTimeout(() => {
                 loadData();
                 initPlayer();
             }, 1000);
         }
-    }, 2000);
+    }, 500);
 
 })();
