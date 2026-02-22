@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Motchill Tools (Skip Intro, Auto Next, Save Speed)
 // @namespace    http://tampermonkey.net/
-// @version      3.8
+// @version      3.9
 // @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
 // @author       Antigravity
 // @match        *://motchill*.*/xem-phim-*
@@ -430,7 +430,7 @@
 
         // 1. Header (Draggable)
         const title = document.createElement('div');
-        title.innerHTML = '<b style="color: #A3765D;">Motchill Tools v3.8</b>';
+        title.innerHTML = '<b style="color: #A3765D;">Motchill Tools</b>';
         title.style.textAlign = 'center';
         title.style.cursor = 'move';
         title.style.paddingBottom = '5px';
