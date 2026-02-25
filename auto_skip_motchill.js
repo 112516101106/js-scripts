@@ -5,7 +5,6 @@
 // @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
 // @author       Antigravity
 // @match        *://motchill*.*/xem-phim-*
-// @include      /^https?:\/\/(www\.)?motchill.*\..*\/.*$/
 // @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
 // @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
 // @grant        none
@@ -14,6 +13,7 @@
 (function () {
     'use strict';
     // @match        *://*.motchill*.*/*
+    // @include      /^https?:\/\/(www\.)?motchill.*\..*\/.*$/
 
     // --- Smart Popup Blocker ---
     // Policies:
