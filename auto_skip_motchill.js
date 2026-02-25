@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Motchill Tools (Skip Intro, Auto Next, Save Speed)
 // @namespace    http://tampermonkey.net/
-// @version      3.9.1
+// @version      4.0
 // @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
 // @author       Antigravity
 // @match        *://motchill*.*/xem-phim-*
