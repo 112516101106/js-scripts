@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Motchill Tools (Skip Intro, Auto Next, Save Speed)
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock + Hide UI)
 // @author       Antigravity
 // @match        *://motchill*.*/xem-phim-*
@@ -417,6 +417,8 @@
     function createUI() {
         if (document.getElementById('motchill-tool-ui')) return;
 
+        const isUiHidden = getSettings('ui_hidden_global', false);
+
         const container = document.createElement('div');
         container.id = 'motchill-tool-ui';
         container.style.cssText = `
@@ -424,7 +426,7 @@
             background: rgba(26, 26, 26, 0.95); color: #fff;
             padding: 12px; border-radius: 8px; z-index: 999999;
             font-family: sans-serif; font-size: 12px;
-            border: 1px solid #A3765D; display: flex; flex-direction: column; gap: 10px;
+            border: 1px solid #A3765D; display: ${isUiHidden ? 'none' : 'flex'}; flex-direction: column; gap: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 250px;
         `;
 
@@ -814,6 +816,7 @@
                 const ui = document.getElementById('motchill-tool-ui');
                 if (ui) {
                     ui.style.display = ui.style.display === 'none' ? 'flex' : 'none';
+                    saveSettings('ui_hidden_global', ui.style.display === 'none');
                 }
                 cmdPressCount = 0;
             }
