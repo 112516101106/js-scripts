@@ -1,12 +1,10 @@
 // ==UserScript==
 // @name         Motchill Tools (Skip Intro, Auto Next, Save Speed)
 // @namespace    http://tampermonkey.net/
-// @version      3.8
-// @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
+// @version      4.3
+// @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock + Hide UI)
 // @author       Antigravity
-// @match        *://*.motchill*.*/*
 // @match        *://motchill*.*/xem-phim-*
-// @include      /^https?:\/\/(www\.)?motchill.*\..*\/.*$/
 // @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
 // @downloadURL  https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
 // @grant        none
@@ -14,10 +12,12 @@
 
 (function () {
     'use strict';
+    // @match        *://*.motchill*.*/*
+    // @include      /^https?:\/\/(www\.)?motchill.*\..*\/.*$/
 
     // --- Smart Popup Blocker ---
-    // Policies: 
-    // 1. Block different-domain popups. 
+    // Policies:
+    // 1. Block different-domain popups.
     // 2. Allow same-domain popups.
     // 3. Allow popups if user holds modifier keys (Cmd/Ctrl/Alt) or double-clicks.
 
@@ -89,7 +89,7 @@
 
 
     const STORAGE_PREFIX = 'motchill_v3_';
-    const REQUIRED_SAMPLES_DEFAULT = 3;
+    const REQUIRED_SAMPLES_DEFAULT = 1;
 
     // --- Helpers for Storage ---
     function getSettings(key, defaultVal) {
@@ -124,10 +124,11 @@
     let savedSpeed = 1.0;
 
     // New States
-    let instantMode = false;
+    let instantMode = true;
     let isAutoEnabled = true;
     let isRewindEnabled = true;
     let effectiveValues = { intro: null, outroOffset: null };
+    let isSpeedStabilized = false;
 
     function getIds() {
         // Try Nuxt data structure
@@ -176,6 +177,7 @@
         instantMode = getSettings('instant_mode_' + ids.movieId, getSettings('instant_mode_global', true));
         isAutoEnabled = getSettings('auto_enabled_global', true);
         isRewindEnabled = getSettings('rewind_enabled_global', true);
+        isSpeedStabilized = false; // Reset on load
 
         recalcEffectiveValues();
 
@@ -384,6 +386,7 @@
         saveSettings('speed_global', savedSpeed);
 
         updateUI();
+        isSpeedStabilized = true;
         applySpeed();
     }
 
@@ -414,6 +417,8 @@
     function createUI() {
         if (document.getElementById('motchill-tool-ui')) return;
 
+        const isUiHidden = getSettings('ui_hidden_global', false);
+
         const container = document.createElement('div');
         container.id = 'motchill-tool-ui';
         container.style.cssText = `
@@ -421,13 +426,13 @@
             background: rgba(26, 26, 26, 0.95); color: #fff;
             padding: 12px; border-radius: 8px; z-index: 999999;
             font-family: sans-serif; font-size: 12px;
-            border: 1px solid #A3765D; display: flex; flex-direction: column; gap: 10px;
+            border: 1px solid #A3765D; display: ${isUiHidden ? 'none' : 'flex'}; flex-direction: column; gap: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 250px;
         `;
 
         // 1. Header (Draggable)
         const title = document.createElement('div');
-        title.innerHTML = '<b style="color: #A3765D;">Motchill Tools v3.8</b>';
+        title.innerHTML = '<b style="color: #A3765D;">Motchill Tools</b>';
         title.style.textAlign = 'center';
         title.style.cursor = 'move';
         title.style.paddingBottom = '5px';
@@ -668,7 +673,22 @@
         console.log('[MotchillTool] Player attached.');
         // Initial load
         loadData();
-        applySpeed();
+
+        if (player._motchillAttached) return;
+        player._motchillAttached = true;
+
+        player.on('playlistItem', () => {
+            console.log('[MotchillTool] Playlist item changed (JWPlayer event). Resetting speed stabilization.');
+            hasSkippedIntro = false;
+            isNextTriggered = false;
+            isSpeedStabilized = false;
+            if (typeof player.setPlaybackRate === 'function') {
+                try { player.setPlaybackRate(1.0); } catch (e) { }
+            } else {
+                const video = document.querySelector('video.jw-video');
+                if (video) video.playbackRate = 1.0;
+            }
+        });
 
         player.on('time', (e) => {
             const t = e.position;
@@ -697,6 +717,22 @@
                     goToNextEpisode();
                 }
             }
+
+            // Safe Speed Logic
+            if (!isSpeedStabilized && isAutoEnabled) {
+                // Policy: Only set speed if we don't have an intro to skip OR we have already skipped it
+                const needsSkip = (effectiveValues.intro && !hasSkippedIntro);
+                if (!needsSkip) {
+                    // Wait a bit for player to actually start playing (t > 0.5) to ensure stability
+                    if (t > 0.5) {
+                        const currentSpeed = (typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1.0;
+                        console.log(`[MotchillTool] Speed transition: ${currentSpeed} -> ${savedSpeed}`);
+                        console.log('[MotchillTool] Speed stabilized (Safe Mode). Setting speed:', savedSpeed);
+                        applySpeed();
+                        isSpeedStabilized = true;
+                    }
+                }
+            }
         });
 
         player.on('complete', () => {
@@ -705,13 +741,45 @@
             }
         });
 
-        player.on('play', applySpeed);
-        player.on('seek', applySpeed);
-        player.on('levelsChanged', applySpeed);
+        player.on('play', () => {
+            if (isSpeedStabilized) applySpeed();
+        });
+        player.on('seek', () => {
+            // If seeking manually, we might want to re-apply speed if stabilized
+            if (isSpeedStabilized) applySpeed();
+        });
+        player.on('levelsChanged', () => {
+            if (isSpeedStabilized) applySpeed();
+        });
+
+        // Theo dõi tốc độ thực tế của video mỗi 5 giây
+        // setInterval(() => {
+        //     try {
+        //         let isPlaying = false;
+        //         let actualSpeed = 1.0;
+
+        //         if (player && typeof player.getState === 'function') {
+        //             isPlaying = player.getState() === 'playing';
+        //             actualSpeed = (typeof player.getPlaybackRate === 'function') ? player.getPlaybackRate() : 1.0;
+        //         } else {
+        //             const video = document.querySelector('video.jw-video');
+        //             if (video) {
+        //                 isPlaying = !video.paused && !video.ended;
+        //                 actualSpeed = video.playbackRate;
+        //             }
+        //         }
+
+        //         if (isPlaying) {
+        //             console.log(`[MotchillTool] Hiện tại video đang phát bật ở tốc độ thực tế: ${actualSpeed}x`);
+        //         }
+        //     } catch (e) { }
+        // }, 5000);
     }
 
-    // Periodically enforce speed
-    setInterval(applySpeed, 1500);
+    // Periodically enforce speed ONLY if stabilized
+    setInterval(() => {
+        if (isSpeedStabilized) applySpeed();
+    }, 1500);
 
     function goToNextEpisode() {
         const nextBtn = document.querySelector('.jw-icon-next') || document.querySelector('.item-next');
@@ -737,6 +805,28 @@
         console.log('[MotchillTool] Next episode button not found.');
     }
 
+    // --- UI Toggle Logic ---
+    let cmdPressCount = 0;
+    let cmdPressTimer = null;
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Meta' || e.key === 'Control') {
+            cmdPressCount++;
+            if (cmdPressCount === 3) {
+                const ui = document.getElementById('motchill-tool-ui');
+                if (ui) {
+                    ui.style.display = ui.style.display === 'none' ? 'flex' : 'none';
+                    saveSettings('ui_hidden_global', ui.style.display === 'none');
+                }
+                cmdPressCount = 0;
+            }
+            clearTimeout(cmdPressTimer);
+            cmdPressTimer = setTimeout(() => {
+                cmdPressCount = 0;
+            }, 1500);
+        }
+    });
+
     // --- Init ---
     const initInterval = setInterval(() => {
         if (document.body) {
@@ -754,12 +844,21 @@
             console.log('[MotchillTool] URL changed, resetting...');
             hasSkippedIntro = false;
             isNextTriggered = false;
+            isSpeedStabilized = false;
+
+            // Explicitly reset player speed to 1x to ensure accurate transition log for new episode
+            if (player && typeof player.setPlaybackRate === 'function') {
+                try { player.setPlaybackRate(1.0); } catch (e) { }
+            } else {
+                const video = document.querySelector('video.jw-video');
+                if (video) video.playbackRate = 1.0;
+            }
 
             setTimeout(() => {
                 loadData();
                 initPlayer();
             }, 1000);
         }
-    }, 2000);
+    }, 500);
 
 })();
