@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Motchill Tools (Skip Intro, Auto Next, Save Speed)
 // @namespace    http://tampermonkey.net/
-// @version      4.0
-// @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock)
+// @version      4.1
+// @description  Hỗ trợ skip intro, auto next, lưu tốc độ xem cho motchilltv.chat (Smart Learning Mode + Speed Control + Fast Learn + Data Sync + Smart AdBlock + Hide UI)
 // @author       Antigravity
 // @match        *://motchill*.*/xem-phim-*
 // @updateURL    https://raw.githubusercontent.com/112516101106/js-scripts/refs/heads/main/auto_skip_motchill.js
@@ -802,6 +802,27 @@
         }
         console.log('[MotchillTool] Next episode button not found.');
     }
+
+    // --- UI Toggle Logic ---
+    let cmdPressCount = 0;
+    let cmdPressTimer = null;
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Meta' || e.key === 'Control') {
+            cmdPressCount++;
+            if (cmdPressCount === 3) {
+                const ui = document.getElementById('motchill-tool-ui');
+                if (ui) {
+                    ui.style.display = ui.style.display === 'none' ? 'flex' : 'none';
+                }
+                cmdPressCount = 0;
+            }
+            clearTimeout(cmdPressTimer);
+            cmdPressTimer = setTimeout(() => {
+                cmdPressCount = 0;
+            }, 1500);
+        }
+    });
 
     // --- Init ---
     const initInterval = setInterval(() => {
