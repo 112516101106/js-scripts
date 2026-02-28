@@ -148,7 +148,7 @@
         const referenceUrl = window.location.href.split('#')[0].split('?')[0];
 
         // 6. Format the output
-        const output = `${questionText}\n${choices.join('\n')}\n[Reference: ${referenceUrl}]\n----${finalAnswer}\n\n\n`;
+        const output = `${finalAnswer}----${questionText}\n${choices.join('\n')}\n[Reference: ${referenceUrl}]\n\n\n`;
 
         return output;
     }
