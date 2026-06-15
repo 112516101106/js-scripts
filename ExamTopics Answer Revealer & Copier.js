@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ExamTopics Answer Revealer & Copier & Sequencer
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Tự động hiển thị đáp án ẩn trên ExamTopics, copy câu hỏi + đáp án + ảnh, tự động mở hình ảnh tiếp theo
 // @author       You
 // @match        *://*.examtopics.com/*
@@ -222,6 +222,32 @@
             cleanSuffix = cleanSuffix.replace(/[?#]autochain=(true|false)/g, '');
         }
         return parsed.prefix + newNumStr + parsed.ext + cleanSuffix;
+    }
+
+    // Find previous/next question link on the page
+    function getPageNavigationLink(direction) {
+        if (direction === 'next') {
+            const nextEl = document.querySelector('.next-question, .next-btn, a[class*="next"]');
+            if (nextEl) return nextEl;
+
+            const links = document.querySelectorAll('a');
+            for (const link of links) {
+                if (link.textContent.toLowerCase().includes('next question')) {
+                    return link;
+                }
+            }
+        } else {
+            const prevEl = document.querySelector('.prev-question, .prev-btn, a[class*="prev"]');
+            if (prevEl) return prevEl;
+
+            const links = document.querySelectorAll('a');
+            for (const link of links) {
+                if (link.textContent.toLowerCase().includes('previous question') || link.textContent.toLowerCase().includes('prev question')) {
+                    return link;
+                }
+            }
+        }
+        return null;
     }
 
     // Copy clean link without sequential hashtags/query-parameters to clipboard
@@ -765,8 +791,11 @@
                     <div style="width: 100%; max-height: 85px; overflow-y: auto; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 6px; box-sizing: border-box;">
                         ${data.imageUrls.map((url, idx) => `
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px; gap: 8px;">
-                                <a href="${url}" target="_blank" style="color: #38bdf8; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;" title="${url}">🖼️ Image ${idx + 1}</a>
-                                <button class="et-copy-img-btn" data-url="${url}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">Copy</button>
+                                <span style="color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;" title="${url}">🖼️ Image ${idx + 1}</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="et-open-img-btn" data-url="${url}" style="background: rgba(83,120,255,0.25); border: 1px solid rgba(83,120,255,0.4); color: #38bdf8; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(83,120,255,0.4)'" onmouseout="this.style.background='rgba(83,120,255,0.25)'">Open</button>
+                                    <button class="et-copy-img-btn" data-url="${url}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">Copy</button>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -779,7 +808,7 @@
                 <span class="et-panel-header-icon">🔓</span>
                 <div class="et-panel-header-text">
                     <h3>ExamTopics Ultimate Helper</h3>
-                    <span>v3.0 — Answer & Image Unlocked</span>
+                    <span>v3.1 — Answer & Image Unlocked</span>
                 </div>
                 <button class="et-btn-minimize" title="Thu nhỏ">−</button>
             </div>
@@ -805,10 +834,10 @@
                 ${imageListHtml}
 
                 <button class="et-btn et-btn-copy" id="et-copy-btn" style="margin-top: 8px;">
-                    📋 Copy Câu hỏi + Đáp án + Ảnh
+                    📋 Copy Câu hỏi + Đáp án + Ảnh [C]
                 </button>
                 <button class="et-btn et-btn-nav" id="et-copy-answer-only">
-                    📝 Copy Đáp án Only
+                    📝 Copy Đáp án Only [V]
                 </button>
             </div>
         `;
@@ -840,7 +869,7 @@
             showToast('📋 Đã copy câu hỏi, đáp án và ảnh vào clipboard!');
             setTimeout(() => {
                 copyBtn.classList.remove('copied');
-                copyBtn.innerHTML = '📋 Copy Câu hỏi + Đáp án + Ảnh';
+                copyBtn.innerHTML = '📋 Copy Câu hỏi + Đáp án + Ảnh [C]';
             }, 2000);
         });
 
@@ -850,6 +879,16 @@
             const answerText = `${data.exam} - Q${data.questionNum}: ${answerDisplay}`;
             copyToClipboard(answerText);
             showToast(`📝 Đáp án: ${answerDisplay}`);
+        });
+
+        // Open image links in new tab
+        const openImgBtns = panel.querySelectorAll('.et-open-img-btn');
+        openImgBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const url = btn.getAttribute('data-url');
+                GM_openInTab(url, { active: true, insert: true });
+            });
         });
 
         // Copy image links
@@ -1397,13 +1436,41 @@
 
             if (isInput) return;
 
-            // Handle Copy clean link shortcut 'c'
-            if (key === 'c') {
-                copyCleanLink(currentUrl);
-                return;
+            // Ignore shortcuts if Ctrl, Cmd, Alt or Shift is pressed (except when captured above)
+            if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+
+            // Shortcuts for Main Domain (www.examtopics.com)
+            if (isMainDomain) {
+                if (key === 'a' || key === 'arrowleft') {
+                    const prevLink = getPageNavigationLink('prev');
+                    if (prevLink) {
+                        prevLink.click();
+                        showToast('Navigating to previous question...');
+                    }
+                } else if (key === 'd' || key === 'arrowright') {
+                    const nextLink = getPageNavigationLink('next');
+                    if (nextLink) {
+                        nextLink.click();
+                        showToast('Navigating to next question...');
+                    }
+                } else if (key === 'c') {
+                    const copyBtn = document.getElementById('et-copy-btn');
+                    if (copyBtn) copyBtn.click();
+                } else if (key === 'v') {
+                    const copyAnsBtn = document.getElementById('et-copy-answer-only');
+                    if (copyAnsBtn) copyAnsBtn.click();
+                } else if (key === 'o') {
+                    const openBtns = document.querySelectorAll('.et-open-img-btn');
+                    if (openBtns.length > 0) {
+                        openBtns.forEach(btn => btn.click());
+                        showToast(`Opened ${openBtns.length} images in new tabs!`);
+                    } else {
+                        showToast('No images found in this question.');
+                    }
+                }
             }
 
-            // Navigation shortcuts (Only active on Image Domain)
+            // Shortcuts for Image Domain (img.examtopics.com)
             if (isImageDomain) {
                 const parsed = parseUrl(currentUrl);
                 if (parsed) {
@@ -1471,7 +1538,7 @@
         setupEventListeners();
     }
 
-    // Since @run-at is document-start, defer execution of UI setup until DOM is loaded
+    // Defer execution of UI setup until DOM is loaded
     function waitAndRun() {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
