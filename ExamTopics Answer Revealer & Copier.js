@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ExamTopics Answer Revealer & Copier & Sequencer
 // @namespace    http://tampermonkey.net/
-// @version      3.2
+// @version      3.3
 // @description  Tự động hiển thị đáp án ẩn trên ExamTopics, copy câu hỏi + đáp án + ảnh, tự động mở hình ảnh tiếp theo
 // @author       You
 // @match        *://*.examtopics.com/*
@@ -1481,10 +1481,9 @@
             const isMacShortcut = e.metaKey && e.ctrlKey && key === 'v';
             const isAltV = e.altKey && key === 'v';
             if (isMacShortcut || isAltV) {
+                e.preventDefault();
                 navigator.clipboard.readText().then(text => {
-                    if (processAndOpenPastedLink(text)) {
-                        e.preventDefault();
-                    }
+                    processAndOpenPastedLink(text);
                 }).catch(err => {
                     console.warn('Clipboard read permission denied/failed: ', err);
                 });
