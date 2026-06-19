@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ExamTopics Answer Revealer & Copier & Sequencer
 // @namespace    http://tampermonkey.net/
-// @version      3.1
+// @version      3.2
 // @description  Tự động hiển thị đáp án ẩn trên ExamTopics, copy câu hỏi + đáp án + ảnh, tự động mở hình ảnh tiếp theo
 // @author       You
 // @match        *://*.examtopics.com/*
@@ -142,12 +142,14 @@
             );
 
             const isMacShortcut = e.metaKey && e.ctrlKey && key === 'v';
+            const isAltV = e.altKey && key === 'v';
 
-            // Allow copy, paste, select all, DevTools, and custom macOS shortcuts to pass unhindered by page block scripts
+            // Allow copy, paste, select all, DevTools, and custom shortcuts to pass unhindered by page block scripts
             if (
                 ((e.ctrlKey || e.metaKey) && (key === 'c' || key === 'v' || key === 'a' || key === 'x')) ||
                 key === 'f12' ||
-                isMacShortcut
+                isMacShortcut ||
+                isAltV
             ) {
                 e.stopPropagation();
             }
@@ -586,6 +588,9 @@
                 z-index: 999999;
                 font-family: 'Inter', -apple-system, sans-serif;
                 width: 340px;
+                max-height: calc(100vh - 24px);
+                display: flex;
+                flex-direction: column;
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
                 border: 1px solid rgba(255,255,255,0.1);
                 border-radius: 16px;
@@ -599,6 +604,7 @@
             #et-revealer-panel.minimized {
                 width: 56px;
                 height: 56px;
+                max-height: 56px;
                 border-radius: 50%;
                 cursor: pointer;
                 overflow: hidden;
@@ -665,6 +671,24 @@
 
             .et-panel-body {
                 padding: 16px 18px;
+                overflow-y: auto;
+                flex: 1;
+            }
+
+            /* Custom sleek scrollbar for premium aesthetic */
+            .et-panel-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            .et-panel-body::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.02);
+                border-radius: 3px;
+            }
+            .et-panel-body::-webkit-scrollbar-thumb {
+                background: rgba(83, 120, 255, 0.3);
+                border-radius: 3px;
+            }
+            .et-panel-body::-webkit-scrollbar-thumb:hover {
+                background: rgba(83, 120, 255, 0.5);
             }
 
             .et-answer-badge {
@@ -947,6 +971,8 @@
                 top: 20px;
                 right: 20px;
                 width: 280px;
+                max-height: calc(100vh - 40px);
+                overflow-y: auto;
                 padding: 16px;
                 background: rgba(15, 23, 42, 0.85);
                 backdrop-filter: blur(12px) saturate(180%);
@@ -960,6 +986,22 @@
                 z-index: 99999999;
                 user-select: none;
                 transition: opacity 0.3s, transform 0.3s;
+            }
+
+            /* Sleek scrollbar for helper panel */
+            #et-helper-panel::-webkit-scrollbar {
+                width: 6px;
+            }
+            #et-helper-panel::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.02);
+                border-radius: 3px;
+            }
+            #et-helper-panel::-webkit-scrollbar-thumb {
+                background: rgba(56, 189, 248, 0.3);
+                border-radius: 3px;
+            }
+            #et-helper-panel::-webkit-scrollbar-thumb:hover {
+                background: rgba(56, 189, 248, 0.5);
             }
             #et-helper-panel:hover {
                 border-color: rgba(255, 255, 255, 0.2);
@@ -1310,7 +1352,21 @@
             document.getElementById('et-btn-next').onclick = () => navigate('next');
         }
 
-        document.getElementById('et-btn-copy').onclick = () => copyCleanLink(currentUrl);
+        const copyBtnEl = document.getElementById('et-btn-copy');
+        if (copyBtnEl) {
+            copyBtnEl.onclick = () => {
+                copyCleanLink(currentUrl);
+                const originalText = copyBtnEl.innerHTML;
+                copyBtnEl.innerHTML = '✅ Copied!';
+                copyBtnEl.style.background = '#22c55e';
+                copyBtnEl.style.borderColor = '#22c55e';
+                setTimeout(() => {
+                    copyBtnEl.innerHTML = originalText;
+                    copyBtnEl.style.background = '';
+                    copyBtnEl.style.borderColor = '';
+                }, 1500);
+            };
+        }
         document.getElementById('et-btn-auto').onclick = () => toggleAuto();
         document.getElementById('et-btn-close').onclick = () => {
             stopAutoAdvance();
@@ -1421,9 +1477,10 @@
                 activeEl.isContentEditable
             );
 
-            // Intercept macOS Cmd + Control + V anywhere on the page
+            // Intercept macOS Cmd + Control + V OR Alt + V anywhere on the page
             const isMacShortcut = e.metaKey && e.ctrlKey && key === 'v';
-            if (isMacShortcut) {
+            const isAltV = e.altKey && key === 'v';
+            if (isMacShortcut || isAltV) {
                 navigator.clipboard.readText().then(text => {
                     if (processAndOpenPastedLink(text)) {
                         e.preventDefault();
@@ -1480,10 +1537,12 @@
                         else if (key === 'a') navigateImage('prev', 'img');
                         else if (key === 'd') navigateImage('next', 'img');
                         else if (key === 's') triggerAutoToggle();
+                        else if (key === 'c') triggerCopyLink();
                     } else {
                         if (key === 'a') navigateImage('prev');
                         else if (key === 'd') navigateImage('next');
                         else if (key === 's') triggerAutoToggle();
+                        else if (key === 'c') triggerCopyLink();
                     }
                 }
             }
@@ -1504,6 +1563,11 @@
     function triggerAutoToggle() {
         const autoBtn = document.getElementById('et-btn-auto');
         if (autoBtn) autoBtn.click();
+    }
+
+    function triggerCopyLink() {
+        const btn = document.getElementById('et-btn-copy');
+        if (btn) btn.click();
     }
 
     // =============================================
