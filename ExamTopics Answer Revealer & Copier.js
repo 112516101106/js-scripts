@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ExamTopics Answer Revealer & Copier & Predictor
 // @namespace    http://tampermonkey.net/
-// @version      4.1
+// @version      4.2
 // @description  Tự động hiển thị đáp án ẩn, copy Q&A+ảnh, predict link ảnh đáp án từ câu hỏi (DRAG DROP variant swap, same-base incrementing)
 // @author       You
 // @match        *://*.examtopics.com/*
@@ -147,6 +147,30 @@
             };
         }
 
+        // Try image{N} format: image15.png, figure3.jpg, etc.
+        // Supports: image, img, figure, fig, pic, q, exam, etc.
+        const imgNameMatch = filename.match(/^(image|img|figure|fig|pic|q|exam|topic|question)(\d+)(\.[a-zA-Z0-9]+)$/i);
+        if (imgNameMatch) {
+            const prefix = pathParts.slice(0, -1).join('/') + '/';
+            const baseName = imgNameMatch[1].toLowerCase();  // e.g., "image"
+            const numStr = imgNameMatch[2];                   // e.g., "15"
+            const ext = imgNameMatch[3];                      // e.g., ".png"
+
+            const hashSuffix = url.includes('#') ? url.split('#')[1] : '';
+
+            return {
+                prefix,
+                baseId: baseName,         // "image" (text prefix)
+                variant: parseInt(numStr, 10),
+                variantStr: numStr,
+                ext,
+                suffix: hashSuffix ? '#' + hashSuffix : '',
+                format: 'image_name',     // new format type
+                basePrefix: baseName,     // "image"
+                url: normalized,
+            };
+        }
+
         return null;
     }
 
@@ -169,6 +193,9 @@
             const baseLen = parsed.baseId.length || 5;
             const varLen = parsed.variantStr.length || 5;
             filename = String(base).padStart(baseLen, '0') + String(variant).padStart(varLen, '0') + ext;
+        } else if (parsed.format === 'image_name') {
+            // image15.png → image16.png (text prefix + number)
+            filename = parsed.basePrefix + variant + ext;
         } else {
             filename = base + ext;
         }
